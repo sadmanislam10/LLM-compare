@@ -9,7 +9,7 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"),
         http_options=types.HttpOptions(timeout=60000),
         )
 
-MODELS = ["gemini-3.5-flash","gemma-4-31b-it"]
+MODELS = ["gemini-3.5-flash", "gemma-4-26b-a4b-it", "gemini-3.1-flash-lite"]
 PROMPT = "Explain what an API is in two sentences."
 
 def ask(model,prompt):

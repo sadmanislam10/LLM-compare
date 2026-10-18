@@ -10,7 +10,12 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"),
         )
 
 MODELS = ["gemini-3.5-flash", "gemma-4-26b-a4b-it", "gemini-3.1-flash-lite"]
-PROMPT = "Explain what an API is in two sentences."
+PROMPTS = [
+    {"category": "easy", "prompt": "Explain what an API is in two sentences."},
+    {"category": "math", "prompt": "what is 17*23? Give only the final answer."},
+    {"category": "coding", "prompt": "Write a Python function that checks if a string is a palindrome. Code only."},
+    {"category": "reasoning", "prompt": "A farmer has 17 sheep. All but 9 run away. How many are left? Give only the number."},
+]
 
 def ask(model,prompt):
     start = time.perf_counter()
@@ -28,16 +33,15 @@ def ask(model,prompt):
         "total": usage.total_token_count,
     }
 
-for model in MODELS:
-    print("=" * 50)
-    print(model)
-    try:
-        result = ask(model, PROMPT)
-    except Exception as error:
-        print("FAILED:", error)
-        continue
-    print(result["text"])
-    print(f"Time: {result['seconds']:.1f}s")
-    print(f"Tokens: input={result['input']}, output={result['output']}, "
-          f"thinking={result['thinking']}, total={result['total']}")
-   
+for item in PROMPTS:
+    print("=" * 60)
+    print(f"[{item['category']}] {item['prompt']}")
+    for model in MODELS:
+        try:
+            result = ask(model, item["prompt"])
+        except Exception as error:
+            print(f"  {model}: FAILED - {error}")
+            continue
+        preview = result["text"].replace("\n", " ")[:100]
+        print(f"  {model}: {result['seconds']:.1f}s, total tokens={result['total']}")
+        print(f"      {preview}")

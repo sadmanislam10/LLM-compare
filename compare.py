@@ -33,15 +33,31 @@ def ask(model,prompt):
         "total": usage.total_token_count,
     }
 
+totals = {}
+for model in MODELS:
+    totals[model] = {"seconds": 0, "tokens": 0, "ok": 0, "failed": 0}
+    
 for item in PROMPTS:
     print("=" * 60)
     print(f"[{item['category']}] {item['prompt']}")
     for model in MODELS:
         try:
-            result = ask(model, item["prompt"])
+            result = ask(model,item["prompt"])
         except Exception as error:
-            print(f"  {model}: FAILED - {error}")
+            print(f"    {model}: FAILED - {error}")
+            totals[model]["failed"] += 1
             continue
+        totals[model]["ok"] += 1
+        totals[model]["seconds"] += result["seconds"]
+        totals[model]["tokens"] += result["total"]
         preview = result["text"].replace("\n", " ")[:100]
-        print(f"  {model}: {result['seconds']:.1f}s, total tokens={result['total']}")
-        print(f"      {preview}")
+        print(f"    {model}: {result['seconds']:.1f}s, total tokens={result['total']}")
+        print(f"    {preview}")
+        
+print("=" * 60)
+print("SUMMARY")
+for model in MODELS:
+    t = totals[model]
+    avg = t["seconds"] / t["ok"] if t["ok"] else 0
+    print(f"{model}: ok={t['ok']}, failed={t['failed']}, "
+      f"time={t['seconds']:.1f}s, avg={avg:.1f}s, tokens={t['tokens']}")

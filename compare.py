@@ -1,5 +1,6 @@
 import os
-import time
+import time 
+import statistics
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -16,6 +17,8 @@ PROMPTS = [
     {"category": "coding", "prompt": "Write a Python function that checks if a string is a palindrome. Code only."},
     {"category": "reasoning", "prompt": "A farmer has 17 sheep. All but 9 run away. How many are left? Give only the number."},
 ]
+
+REPEATS = 3
 
 def ask(model,prompt):
     start = time.perf_counter()
@@ -35,29 +38,31 @@ def ask(model,prompt):
 
 totals = {}
 for model in MODELS:
-    totals[model] = {"seconds": 0, "tokens": 0, "ok": 0, "failed": 0}
-    
+    totals[model] = {"times": [], "tokens": [], "failed": 0}
+
 for item in PROMPTS:
     print("=" * 60)
     print(f"[{item['category']}] {item['prompt']}")
     for model in MODELS:
-        try:
-            result = ask(model,item["prompt"])
-        except Exception as error:
-            print(f"    {model}: FAILED - {error}")
-            totals[model]["failed"] += 1
-            continue
-        totals[model]["ok"] += 1
-        totals[model]["seconds"] += result["seconds"]
-        totals[model]["tokens"] += result["total"]
-        preview = result["text"].replace("\n", " ")[:100]
-        print(f"    {model}: {result['seconds']:.1f}s, total tokens={result['total']}")
-        print(f"    {preview}")
-        
+        for run in range(REPEATS):
+            try:
+                result = ask(model, item["prompt"])
+            except Exception as error:
+                print(f"    {model} (run {run + 1}): FAILED - {error}")
+                totals[model]["failed"] += 1
+                continue
+            totals[model]["times"].append(result["seconds"])
+            totals[model]["tokens"].append(result["total"])
+            print(f"    {model} (run {run + 1}): "
+                  f"{result['seconds']:.1f}s, tokens={result['total']}")
+
 print("=" * 60)
 print("SUMMARY")
 for model in MODELS:
     t = totals[model]
-    avg = t["seconds"] / t["ok"] if t["ok"] else 0
-    print(f"{model}: ok={t['ok']}, failed={t['failed']}, "
-      f"time={t['seconds']:.1f}s, avg={avg:.1f}s, tokens={t['tokens']}")
+    if not t["times"]:
+        print(f"{model}: all requests failed")
+        continue
+    print(f"{model}: ok={len(t['times'])}, failed={t['failed']}, "
+          f"median time={statistics.median(t['times']):.1f}s, "
+          f"median tokens={statistics.median(t['tokens']):.0f}")
